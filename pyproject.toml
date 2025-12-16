@@ -24,6 +24,8 @@ dependencies = [
     "uvicorn>=0.36.0",
     "wandb>=0.21.3",
     "zstandard>=0.25.0",
+    "huggingface_hub",
+    "hf_transfer>=0.1.9",
 ]
 
 [dependency-groups]
