@@ -18,11 +18,14 @@ from nanochat.engine import Engine
 
 # Configuration
 device_batch_size = 32
-split_tokens = 20*524288  # number of tokens to evaluate per split
 model_tag = None # optional model tag for the output directory name
 model_step = None # optional model step for the output directory name
 device_type = "" # cuda|cpu|mps (empty => autodetect)
+total_batch_size = 524288
 exec(open(os.path.join('nanochat', 'configurator.py')).read()) # overrides from command line or config file
+
+device_batch_size = device_batch_size//2
+split_tokens = 20*total_batch_size  # number of tokens to evaluate per split
 
 # Load the base model and the tokenizer
 device_type = autodetect_device_type() if device_type == "" else device_type
