@@ -259,10 +259,8 @@ class GPT(nn.Module):
         x = norm(x)
 
         # Forward the lm_head (compute logits)
-        softcap = 15 # smoothly cap the logits to the range [-softcap, softcap]
         logits = self.lm_head(x) # (B, T, vocab_size) <- very big tensor, large amount of memory
-        logits = logits.float() # switch to fp32 for logit softcap and loss computation
-        logits = softcap * torch.tanh(logits / softcap) # squash the logits
+        logits = logits.float() # switch to fp32 for loss computation
 
         if targets is not None:
             # training: given the targets, compute and return the loss
