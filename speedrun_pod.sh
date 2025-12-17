@@ -93,7 +93,10 @@ uv run maturin develop --release --manifest-path rustbpe/Cargo.toml
 
 
 if [[ DO_MIDTRAINING -eq 1 ]]; then
-  curl -L -o "${NANOCHAT_BASE_DIR}/identity_conversations.jsonl" https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
+  if [[ ! -e "cache/identity_conversations.jsonl" ]]; then
+    mkdir cache
+    cp cache_static_workaround/identity_conversations.jsonl cache/
+  fi
 fi
 
 if [[ DO_PRETREINING -eq 1 ]]; then
