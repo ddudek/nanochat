@@ -273,6 +273,7 @@ while True:
             min_val_bpb = val_bpb
         wandb_run.log({
             "step": step,
+            "num_iterations": num_iterations,
             "total_training_flops": flops_so_far,
             "total_training_time": total_training_time,
             "val/bpb": val_bpb,
@@ -289,6 +290,7 @@ while True:
         print0(f"Step {step:05d} | CORE metric: {results['core_metric']:.4f}")
         wandb_run.log({
             "step": step,
+            "num_iterations": num_iterations,
             "total_training_flops": flops_so_far,
             "core_metric": results["core_metric"],
             "centered_results": results["centered_results"],
@@ -325,6 +327,7 @@ while True:
             [opt.state_dict() for opt in optimizers], # optimizer states
             { # metadata saved as json
                 "step": step,
+                "num_iterations": num_iterations,
                 "val_bpb": val_bpb, # loss at last step
                 "model_config": model_config_kwargs,
                 "user_config": user_config, # inputs to the training script
@@ -400,6 +403,7 @@ while True:
     if step % 100 == 0:
         log_data = {
             "step": step,
+            "num_iterations": num_iterations,
             "total_training_flops": flops_so_far,
             "total_training_time": total_training_time,
             "train/loss": debiased_smooth_loss,
