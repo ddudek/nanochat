@@ -16,7 +16,7 @@ set -euo pipefail
 export NPROC_PER_NODE="${NPROC_PER_NODE:-2}"
 
 # Smaller model than the official d20 speedrun
-MODEL_DEPTH="${MODEL_DEPTH:-12}"
+MODEL_DEPTH="${MODEL_DEPTH:-30}"
 
 # Per-GPU batch size (smaller than default 32 to fit VRAM)
 DEVICE_BATCH_SIZE="${DEVICE_BATCH_SIZE:-16}"

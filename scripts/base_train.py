@@ -88,9 +88,14 @@ print0(f"Vocab size: {vocab_size:,}")
 
 # Model kwargs are derived from the desired depth of the model
 num_layers = depth
-model_dim = depth * 64 # aspect ratio 64 (usually this is varied from 64 -> 128 as model size increases)
-num_heads = max(1, (model_dim + 127) // 128) # head dim 128 (the division here is ceil div)
-num_kv_heads = num_heads # default is 1:1 GQA (Group Query Attention) ratio (i.e. GQA is disabled)
+# model_dim = depth * 64 # aspect ratio 64 (usually this is varied from 64 -> 128 as model size increases)
+# num_heads = max(1, (model_dim + 127) // 128) # head dim 128 (the division here is ceil div)
+# num_kv_heads = num_heads # default is 1:1 GQA (Group Query Attention) ratio (i.e. GQA is disabled)
+
+model_dim = 576
+num_heads = 9
+num_kv_heads = 3
+
 print0(f"num_layers: {num_layers}")
 print0(f"model_dim: {model_dim}")
 print0(f"num_heads: {num_heads}")
