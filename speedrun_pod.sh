@@ -93,8 +93,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 
 # Build the rustbpe Tokenizer
-uv run maturin develop --release --manifest-path rustbpe/Cargo.toml
-
+# uv run maturin develop --release --manifest-path rustbpe/Cargo.toml
+make rust-dev-gpu
 
 if [[ DO_MIDTRAINING -eq 1 ]]; then
   curl -L -o "${NANOCHAT_BASE_DIR}/identity_conversations.jsonl" https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
