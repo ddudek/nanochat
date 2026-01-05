@@ -89,20 +89,11 @@ echo
 echo ">>> [Stage 1] Install Rust toolchain + build rustbpe tokenizer ..."
 # Install Rust / Cargo (non-interactive)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-# shellcheck source=/dev/null
-source "$HOME/.cargo/env"
-
-# Build the rustbpe Tokenizer
-# uv run maturin develop --release --manifest-path rustbpe/Cargo.toml
-make rust-dev-gpu
-
-if [[ DO_MIDTRAINING -eq 1 ]]; then
-  curl -L -o "${NANOCHAT_BASE_DIR}/identity_conversations.jsonl" https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
-fi
 
 if [[ DO_PRETREINING -eq 1 ]]; then
 
   if [[ DO_TOKENIZER -eq 1 && RESUME_FROM_STEP -eq -1 ]]; then
+  
     echo
     echo ">>> Download a few shards first (for tokenizer) ..."
     python -m nanochat.dataset -n 8
@@ -127,6 +118,11 @@ if [[ DO_PRETREINING -eq 1 ]]; then
       echo "WARNING: dataset download process exited with non-zero status."
       echo "Training will still run but may loop over fewer shards."
     fi
+  fi
+
+
+  if [[ DO_MIDTRAINING -eq 1 ]]; then
+    curl -L -o "${NANOCHAT_BASE_DIR}/identity_conversations.jsonl" https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
   fi
 
   echo
