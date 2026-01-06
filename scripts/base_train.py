@@ -316,13 +316,15 @@ while True:
     # evaluate the gradient
     synchronize()
     t0 = time.time()
+    train_losses = []
     for micro_step in range(grad_accum_steps):
         with autocast_ctx:
             loss = model(x, y)
-        train_loss = loss.detach() # for logging
+        detached_loss = loss.detach()
         loss = loss / grad_accum_steps # each .backward() is a grad sum => normalize loss here
         loss.backward()
         x, y, dataloader_state_dict = next(train_loader) # prefetch the next batch while the GPU is busy with forward/backward
+        train_losses.append(detached_loss.item()) # for logging
     # gradient clipping
     grad_clip_enabled = args.grad_clip > 0.0
     if grad_clip_enabled:
@@ -345,8 +347,9 @@ while True:
     # -------------------------------------------------------------------------
 
     # logging
-    ema_beta = 0.9 # EMA decay factor for some smoothing just for nicer logging
-    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss.item() # EMA the training loss
+    ema_beta = 0.2 # EMA decay factor for some smoothing just for nicer logging
+    train_loss = sum(train_losses) / len(train_losses)
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss # EMA the training loss
     debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1)) # debias the EMA
     pct_done = 100 * step / num_iterations
     tok_per_sec = int(args.total_batch_size / dt)
