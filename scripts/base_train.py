@@ -349,13 +349,15 @@ while True:
     # evaluate the gradient
     synchronize()
     t0 = time.time()
+    train_losses = []
     for micro_step in range(grad_accum_steps):
         with autocast_ctx:
             loss = model(x, y)
-        train_loss = loss.detach() # for logging
+        detached_loss = loss.detach()
         loss = loss / grad_accum_steps # each .backward() is a grad sum => normalize loss here
         loss.backward()
         x, y, dataloader_state_dict = next(train_loader) # prefetch the next batch while the GPU is busy with forward/backward
+        train_losses.append(detached_loss.item()) # for logging
     # step the optimizers
     lrm = get_lr_multiplier(step)
     for opt in optimizers:
@@ -369,7 +371,6 @@ while True:
     for opt in optimizers:
         opt.step()
     model.zero_grad(set_to_none=True)
-    train_loss_f = train_loss.item() # .item() is a CPU-GPU sync point
     synchronize()
     t1 = time.time()
     dt = t1 - t0
@@ -377,7 +378,8 @@ while True:
 
     # logging (CPU action only)
     ema_beta = 0.9 # EMA decay factor for some smoothing just for nicer logging
-    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f # EMA the training loss
+    train_loss = sum(train_losses) / len(train_losses)
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss # EMA the training loss
     debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1)) # debias the EMA
     pct_done = 100 * step / num_iterations
     tok_per_sec = int(args.total_batch_size / dt)

@@ -184,7 +184,7 @@ for step in range(num_iterations):
             val_inputs, val_targets = next(val_loader)
             with torch.no_grad(), autocast_ctx:
                 loss = model(val_inputs, val_targets)
-            losses.append(loss)
+            losses.append(loss.detach())
         val_loss = torch.stack(losses).mean() # average over eval_steps
         if ddp:
             dist.all_reduce(val_loss, op=dist.ReduceOp.AVG) # average over ranks
@@ -217,14 +217,16 @@ for step in range(num_iterations):
 
     # evaluate the gradient
     num_tokens = torch.tensor(0, device=device) # the number of "active" tokens of supervision seen
+    train_losses = []
     for micro_step in range(grad_accum_steps):
         train_inputs, train_targets = next(train_loader)
         with autocast_ctx:
             loss = model(train_inputs, train_targets)
-        train_loss = loss.detach() # for logging
+        detached_loss = loss.detach()
         loss = loss / grad_accum_steps # each .backward() is a grad sum => normalize loss here
         loss.backward() # accumulate the gradient
         num_tokens += (train_targets >= 0).sum()
+        train_losses.append(detached_loss.item()) # for logging
     if ddp:
         dist.all_reduce(num_tokens, op=dist.ReduceOp.SUM) # sum over ranks
 
@@ -240,7 +242,7 @@ for step in range(num_iterations):
     model.zero_grad(set_to_none=True)
 
     # logging
-    train_loss_item = train_loss.item()
+    train_loss_item = sum(train_losses) / len(train_losses)
     num_tokens_item = num_tokens.item()
     print0(f"Step {step:05d}/{num_iterations:05d} | Training loss: {train_loss_item:.6f}| lrm: {lrm:.6f}| num_tokens: {num_tokens_item:,}")
     wandb_run.log({

@@ -236,7 +236,7 @@ def get_muon_momentum(it):
 x, y = next(train_loader) # prefetch the very first batch of data
 min_val_bpb = float("inf")
 smooth_train_loss = 0 # EMA of training loss
-ema_beta = 0.9 # EMA decay factor
+ema_beta = 0.2 # EMA decay factor
 total_training_time = 0 # total wall-clock time of training
 step = 0
 while True:
@@ -298,14 +298,16 @@ while True:
     # evaluate the gradient
     synchronize()
     t0 = time.time()
+    train_losses = []
     for micro_step in range(grad_accum_steps):
         with autocast_ctx:
             loss = model(x, y)
-        train_loss = loss.detach() # for logging
+        detached_loss = loss.detach()
         loss = loss / grad_accum_steps # each .backward() is a grad sum => normalize loss here
         loss.backward()
         x, y = next(train_loader) # prefetch the next batch while the GPU is busy with forward/backward
         progress = max(progress, approx_progress) # only increase progress monotonically
+        train_losses.append(detached_loss.item()) # for logging
     # step the optimizers
     lrm = get_lr_multiplier(progress)
     for opt in optimizers:
@@ -326,7 +328,8 @@ while True:
     step += 1
 
     # logging
-    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss.item() # EMA the training loss
+    train_loss = sum(train_losses) / len(train_losses)
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss # EMA the training loss
     debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1)) # debias the EMA
     pct_done = 100 * progress
     tok_per_sec = int(args.total_batch_size / dt)
