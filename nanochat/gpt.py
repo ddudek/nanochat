@@ -4,7 +4,7 @@ Notable features:
 - rotary embeddings (and no positional embeddings)
 - QK norm
 - untied weights for token embedding and lm_head
-- relu^2 activation in MLP
+- relu^2 activation in MLP or SwiGLU activation (default)
 - norm after token embedding
 - no learnable params in rmsnorm
 - no bias in linear layers
@@ -31,6 +31,7 @@ class GPTConfig:
     n_head: int = 6 # number of query heads
     n_kv_head: int = 6 # number of key/value heads (GQA)
     n_embd: int = 768
+    mlp_type: str = "swiglu" # "relu2" or "swiglu"
 
 
 def norm(x):
@@ -108,6 +109,7 @@ class CausalSelfAttention(nn.Module):
 
 
 class MLP(nn.Module):
+    """Standard MLP with relu^2 activation."""
     def __init__(self, config):
         super().__init__()
         self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
@@ -120,11 +122,37 @@ class MLP(nn.Module):
         return x
 
 
+class SwiGLUMLP(nn.Module):
+    """SwiGLU MLP (Llama-style) with silu activation and gating."""
+    def __init__(self, config):
+        super().__init__()
+        # Llama-style: approx 8/3 * d_model hidden size
+        hidden_dim = int(8 * config.n_embd / 3)
+
+        self.w1 = nn.Linear(config.n_embd, hidden_dim, bias=False)  # gate
+        self.w2 = nn.Linear(config.n_embd, hidden_dim, bias=False)  # up
+        self.c_proj = nn.Linear(hidden_dim, config.n_embd, bias=False)  # down (named c_proj for consistency)
+
+    def forward(self, x):
+        # SwiGLU: silu(W1 x) * (W2 x)
+        return self.c_proj(F.silu(self.w1(x)) * self.w2(x))
+
+
+def create_mlp(config):
+    """Factory function to create the appropriate MLP based on config."""
+    if config.mlp_type == "relu2":
+        return MLP(config)
+    elif config.mlp_type == "swiglu":
+        return SwiGLUMLP(config)
+    else:
+        raise ValueError(f"Unknown mlp_type: {config.mlp_type}. Must be 'relu2' or 'swiglu'.")
+
+
 class Block(nn.Module):
     def __init__(self, config, layer_idx):
         super().__init__()
         self.attn = CausalSelfAttention(config, layer_idx)
-        self.mlp = MLP(config)
+        self.mlp = create_mlp(config)
 
     def forward(self, x, cos_sin, kv_cache):
         x = x + self.attn(norm(x), cos_sin, kv_cache)
