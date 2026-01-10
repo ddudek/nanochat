@@ -211,7 +211,14 @@ class GPT(nn.Module):
             torch.nn.init.uniform_(block.attn.c_k.weight, -s, s)
             torch.nn.init.uniform_(block.attn.c_v.weight, -s, s)
             torch.nn.init.zeros_(block.attn.c_proj.weight) # projections are zero
-            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+            if self.config.mlp_type == "relu2":
+                torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+            elif self.config.mlp_type == "swiglu":
+                torch.nn.init.uniform_(block.mlp.w1.weight, -s, s)
+                torch.nn.init.uniform_(block.mlp.w2.weight, -s, s)
+            else:
+                raise ValueError(f"Unknown mlp_type: {self.config.mlp_type}. Must be 'relu2' or 'swiglu'.")
+            
             torch.nn.init.zeros_(block.mlp.c_proj.weight)
 
         # Rotary embeddings
