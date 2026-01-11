@@ -100,6 +100,12 @@ def find_num_heads(model_dim, target_head_dim=128):
     return 1
 num_heads = find_num_heads(model_dim)
 num_kv_heads = num_heads # default is 1:1 GQA (Group Query Attention) ratio (i.e. GQA is disabled)
+
+
+model_dim = 576 # depth * 32 # depth * 64 # aspect ratio 64 (usually this is varied from 64 -> 128 as model size increases)
+num_heads = 9 #max(1, (model_dim + 127) // 128) # head dim 128 (the division here is ceil div)
+num_kv_heads = 3 #num_heads # default is 1:1 GQA (Group Query Attention) ratio (i.e. GQA is disabled)
+
 print0(f"num_layers: {num_layers}")
 print0(f"model_dim: {model_dim}")
 print0(f"num_heads: {num_heads}")
